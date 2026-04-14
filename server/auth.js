@@ -16,6 +16,7 @@ function AuthRouter() {
                 res.send(response);
             })
             .catch((err) => {
+                console.log(err);
                 res.status(500);
                 res.send(err);
                 next();
