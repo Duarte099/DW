@@ -2,7 +2,7 @@ const bodyParser = require("body-parser");
 const express = require("express");
 const Users = require("../data/users");
 function AuthRouter() {
-    let router = express();
+    let router = express.Router();
     router.use(bodyParser.json({ limit: "100mb" }));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
     router.route("/register").post(function (req, res, next) {
@@ -19,7 +19,6 @@ function AuthRouter() {
                 console.log(err);
                 res.status(500);
                 res.send(err);
-                next();
             });
     });
     router.route("/me").get(function (req, res, next) {
@@ -37,7 +36,6 @@ function AuthRouter() {
             .catch((err) => {
                 res.status(500);
                 res.send(err);
-                next();
             });
     });
     router.route("/login").post(function (req, res, next) {
@@ -54,7 +52,6 @@ function AuthRouter() {
             .catch((err) => {
                 res.status(500);
                 res.send(err);
-                next();
             });
     });
     return router;

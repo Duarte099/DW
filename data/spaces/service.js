@@ -4,7 +4,7 @@ function SpaceService(Space) {
         findAll,
         findById,
         update,
-        removeById
+        removeById,
     };
 
     function create(values) {
@@ -13,36 +13,37 @@ function SpaceService(Space) {
     }
     function save(newSpace) {
         return new Promise(function (resolve, reject) {
-            newSpace.save()
-                .then(() => resolve('Space created'))
+            newSpace
+                .save()
+                .then(() => resolve("Space created"))
                 .catch((err) => reject(err));
         });
     }
     function findAll() {
         return new Promise(function (resolve, reject) {
-            SpaceModel.find({})
+            Space.find({})
                 .then((spaces) => resolve(spaces))
                 .catch((err) => reject(err));
         });
     }
     function findById(id) {
         return new Promise(function (resolve, reject) {
-            SpaceModel.findById(id)
+            Space.findById(id)
                 .then((space) => resolve(space))
                 .catch((err) => reject(err));
         });
     }
     function update(id, values) {
         return new Promise(function (resolve, reject) {
-            SpaceModel.findByIdAndUpdate(id, values, { new: true })
+            Space.findByIdAndUpdate(id, values, { new: true })
                 .then((space) => resolve(space))
                 .catch((err) => reject(err));
         });
     }
     function removeById(id) {
         return new Promise(function (resolve, reject) {
-            SpaceModel.findByIdAndRemove(id)
-                .then(() => resolve('Space removed'))
+            Space.findByIdAndRemove(id)
+                .then(() => resolve("Space removed"))
                 .catch((err) => reject(err));
         });
     }

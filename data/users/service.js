@@ -4,7 +4,11 @@ const config = require("../../config");
 
 function UserService(UserModel) {
     let service = {
+        findAll,
         create,
+        findById,
+        update,
+        removeById,
         createToken,
         verifyToken,
         findUser,
@@ -75,6 +79,13 @@ function UserService(UserModel) {
                 });
         });
     }
+    function findAll() {
+        return new Promise(function (resolve, reject) {
+            UserModel.find({})
+                .then((users) => resolve(users))
+                .catch((err) => reject(err));
+        });
+    }
     function create(user) {
         return createPassword(user).then((passwordHash, err) => {
             if (err) {
@@ -86,6 +97,27 @@ function UserService(UserModel) {
             };
             let newUser = UserModel(newUserWithPassword);
             return save(newUser);
+        });
+    }
+    function findById(id) {
+        return new Promise(function (resolve, reject) {
+            UserModel.findById(id)
+                .then((users) => resolve(users))
+                .catch((err) => reject(err));
+        });
+    }
+    function update(id, values) {
+        return new Promise(function (resolve, reject) {
+            UserModel.findByIdAndUpdate(id, values, { new: true })
+                .then((user) => resolve(user))
+                .catch((err) => reject(err));
+        });
+    }
+    function removeById(id) {
+        return new Promise(function (resolve, reject) {
+            UserModel.findByIdAndRemove(id)
+                .then(() => resolve("User removed"))
+                .catch((err) => reject(err));
         });
     }
     function save(model) {
