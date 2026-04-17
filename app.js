@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 let router = require("./router");
 const mongoose = require("mongoose");
-const config = require("./config");
+const config = require("./config/config");
 
 mongoose
     .connect(config.db)

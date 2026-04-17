@@ -3,44 +3,60 @@ const express = require("express");
 const scopes = require("../data/users/scopes");
 const Users = require("../data/users");
 const Spaces = require("../data/spaces");
+const authMiddleware = require("../middlewares/authorize");
+function getEndTime(startDateTime, duration) {
+    const end = new Date(startDateTime);
+    end.setHours(end.getHours() + duration);
+    return end;
+}
 function SpaceRouter() {
     let router = express();
     router.use(bodyParser.json({ limit: "100mb" }));
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
-    router.use(function (req, res, next) {
-        let token = req.headers["x-access-token"];
-        if (!token) {
-            return res
-                .status(400)
-                .send({ auth: false, message: "No token provided." });
-        }
-        Users.verifyToken(token)
-            .then((decoded) => {
-                console.log(" -= > Valid Token <=- ");
-                console.log("DECODED->" + JSON.stringify(decoded, null, 2));
-                req.roleUser = decoded.role;
-                next();
-            })
-            .catch(() => {
-                res.status(401).send({
-                    auth: false,
-                    message: "Not authorized",
-                });
-            });
-    });
+    router.use(authMiddleware);
     router
         .route("/")
         .get(
-            Users.authorize([scopes["read-spaces"]]),
-            function (req, res, next) {
-                Spaces.findAll()
-                    .then((spaces) => {
-                        res.send(spaces);
-                        next();
-                    })
-                    .catch((err) => {
-                        next();
-                    });
+            Users.authorize([scopes["read-spaces"], scopes["manage-spaces"]]),
+            async function (req, res, next) {
+                try {
+                    let { name, capacity, startDate, endDate } = req.query;
+
+                    let result = await Spaces.findAll();
+                    let spaces = result.data || [];
+                    
+                    console.log("Filtered spaces:", spaces);
+                    if (name) {
+                        spaces = spaces.filter((s) =>
+                            s.name.toLowerCase().includes(name.toLowerCase()),
+                        );
+                    }
+
+                    if (capacity) {
+                        spaces = spaces.filter(
+                            (s) => s.capacity >= parseInt(capacity),
+                        );
+                    }
+
+                    if (startDate && endDate) {
+                        let start = new Date(startDate);
+                        let end = (spaces = spaces.filter((s) => {
+                            if (!s.bookings) return true;
+
+                            return !s.bookings.some((b) => {
+                                let bStart = new Date(b.startDate);
+                                let bEnd = new Date(b.endDate);
+
+                                return start <= bEnd && end >= bStart;
+                            });
+                        }));
+                    }
+
+                    res.send(spaces);
+                    next();
+                } catch (err) {
+                    next(err);
+                }
             },
         )
         .post(
@@ -49,7 +65,6 @@ function SpaceRouter() {
                 let body = req.body;
                 Spaces.create(body)
                     .then(() => {
-                        console.log("Created!");
                         res.status(200);
                         res.send(body);
                         next();
@@ -65,7 +80,7 @@ function SpaceRouter() {
     router
         .route("/:spaceId")
         .get(
-            Users.authorize([scopes["read-spaces"]]),
+            Users.authorize([scopes["read-spaces"], scopes["manage-spaces"]]),
             function (req, res, next) {
                 let spaceId = req.params.spaceId;
                 Spaces.findById(spaceId)

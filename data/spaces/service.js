@@ -19,10 +19,42 @@ function SpaceService(Space) {
                 .catch((err) => reject(err));
         });
     }
-    function findAll() {
+    function findAll(page, size) {
         return new Promise(function (resolve, reject) {
-            Space.find({})
-                .then((spaces) => resolve(spaces))
+            const pageNum = parseInt(page);
+            const sizeNum = parseInt(size);
+
+            if (!pageNum || !sizeNum) {
+                Space.find({})
+                    .then((spaces) =>
+                        resolve({
+                            data: spaces,
+                            total: spaces.length,
+                            page: null,
+                            size: null,
+                            totalPages: 1,
+                        }),
+                    )
+                    .catch((err) => reject(err));
+                return;
+            }
+
+            const skip = (pageNum - 1) * sizeNum;
+
+            Promise.all([
+                Space.find({}).skip(skip).limit(sizeNum),
+
+                Space.countDocuments(),
+            ])
+                .then(([data, total]) =>
+                    resolve({
+                        data,
+                        total,
+                        page: pageNum,
+                        size: sizeNum,
+                        totalPages: Math.ceil(total / sizeNum),
+                    }),
+                )
                 .catch((err) => reject(err));
         });
     }
@@ -42,7 +74,7 @@ function SpaceService(Space) {
     }
     function removeById(id) {
         return new Promise(function (resolve, reject) {
-            Space.findByIdAndRemove(id)
+            Space.findByIdAndDelete(id)
                 .then(() => resolve("Space removed"))
                 .catch((err) => reject(err));
         });

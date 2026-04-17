@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const config = require("../../config");
+const config = require("../../config/config");
+const crypto = require("crypto");
 
 function UserService(UserModel) {
     let service = {
@@ -13,6 +14,8 @@ function UserService(UserModel) {
         verifyToken,
         findUser,
         authorize,
+        forgotPassword,
+        resetPassword,
     };
     function authorize(scopes) {
         return (request, response, next) => {
@@ -79,10 +82,42 @@ function UserService(UserModel) {
                 });
         });
     }
-    function findAll() {
+    function findAll(page, size) {
         return new Promise(function (resolve, reject) {
-            UserModel.find({})
-                .then((users) => resolve(users))
+            const pageNum = parseInt(page);
+            const sizeNum = parseInt(size);
+
+            if (!pageNum || !sizeNum) {
+                UserModel.find({})
+                    .then((users) =>
+                        resolve({
+                            data: users,
+                            total: users.length,
+                            page: null,
+                            size: null,
+                            totalPages: 1,
+                        }),
+                    )
+                    .catch((err) => reject(err));
+                return;
+            }
+
+            const skip = (pageNum - 1) * sizeNum;
+
+            Promise.all([
+                UserModel.find({}).skip(skip).limit(sizeNum),
+
+                UserModel.countDocuments(),
+            ])
+                .then(([data, total]) =>
+                    resolve({
+                        data,
+                        total,
+                        page: pageNum,
+                        size: sizeNum,
+                        totalPages: Math.ceil(total / sizeNum),
+                    }),
+                )
                 .catch((err) => reject(err));
         });
     }
@@ -115,7 +150,7 @@ function UserService(UserModel) {
     }
     function removeById(id) {
         return new Promise(function (resolve, reject) {
-            UserModel.findByIdAndRemove(id)
+            UserModel.findByIdAndDelete(id)
                 .then(() => resolve("User removed"))
                 .catch((err) => reject(err));
         });
@@ -128,6 +163,43 @@ function UserService(UserModel) {
                 .catch((err) =>
                     reject(`There is a problem with register ${err}`),
                 );
+        });
+    }
+    function forgotPassword(email) {
+        return UserModel.findOne({ email }).then((user) => {
+            if (!user) {
+                return { message: "Token gerado", token: null };
+            }
+
+            const token = crypto.randomBytes(32).toString("hex");
+
+            user.resetPasswordToken = token;
+            user.resetPasswordExpires =
+                Date.now() + config.expiresTokenResetPassword;
+
+            return user.save().then(() => ({
+                message: "Token gerado",
+                token: token, 
+            }));
+        });
+    }
+    function resetPassword(token, newPassword) {
+        return UserModel.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() },
+        }).then((user) => {
+            if (!user) {
+                return Promise.reject("Token inválido ou expirado");
+            }
+
+            return createPassword({ password: newPassword }).then((hash) => {
+                user.password = hash;
+
+                user.resetPasswordToken = undefined;
+                user.resetPasswordExpires = undefined;
+
+                return user.save();
+            });
         });
     }
     return service;
