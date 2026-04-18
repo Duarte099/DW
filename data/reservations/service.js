@@ -149,14 +149,14 @@ function ReservationService(Reservation) {
             status: { $in: ["pending", "confirmed"] },
         }).then((reservations) => {
             for (let r of reservations) {
-                // 🔥 ignorar a própria reserva no update
+                //Ignora a propria reserva
                 if (ignoreId && r._id.toString() === ignoreId.toString()) {
                     continue;
                 }
 
                 const existingStart = getDateTime(r.date, r.startTime);
                 const existingEnd = getEndTime(existingStart, r.duration);
-
+                // Se a reserva começar antes da outra acabar e a reserva acaba depois da outra começar 
                 if (start < existingEnd && end > existingStart) {
                     return true;
                 }

@@ -53,11 +53,17 @@ function UserService(UserModel) {
     }
     function verifyToken(token) {
         return new Promise((resolve, reject) => {
-            jwt.verify(token, config.secret, (err, decoded) => {
+            jwt.verify(token, config.secret, async (err, decoded) => {
                 if (err) {
-                    reject();
+                    return reject();
                 }
-                return resolve(decoded);
+
+                const user = await UserModel.findById(decoded.id);
+                if (!user) {
+                    return reject();
+                }
+
+                resolve(decoded);
             });
         });
     }
@@ -179,7 +185,7 @@ function UserService(UserModel) {
 
             return user.save().then(() => ({
                 message: "Token gerado",
-                token: token, 
+                token: token,
             }));
         });
     }
