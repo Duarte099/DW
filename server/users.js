@@ -80,7 +80,7 @@ function UserRouter() {
 
                 Users.removeById(userId)
                     .then(() => {
-                        res.status(200).send({ message: "User deleted" });
+                        res.status(200).send();
                     })
                     .catch((err) => {
                         res.status(404).send(err.message);

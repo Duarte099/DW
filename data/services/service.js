@@ -8,19 +8,36 @@ function ServiceService(Service) {
     };
 
     function create(values) {
+        if (!values || typeof values !== "object") {
+            return Promise.resolve({
+                type: "error",
+                message: "Dados inválidos.",
+            });
+        }
+
         let newService = new Service(values);
         return save(newService);
     }
     function save(newService) {
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve) {
             newService
                 .save()
-                .then(() => resolve("Service created"))
-                .catch((err) => reject(err));
+                .then(() =>
+                    resolve({
+                        type: "success",
+                        message: "Serviço criado com sucesso.",
+                    }),
+                )
+                .catch(() =>
+                    resolve({
+                        type: "error",
+                        message: "Erro ao criar serviço.",
+                    }),
+                );
         });
     }
     function findAll(page, size) {
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve) {
             const pageNum = parseInt(page);
             const sizeNum = parseInt(size);
 
@@ -28,6 +45,8 @@ function ServiceService(Service) {
                 Service.find({})
                     .then((services) =>
                         resolve({
+                            success: true,
+                            message: "Serviços obtidos com sucesso.",
                             data: services,
                             total: services.length,
                             page: null,
@@ -35,7 +54,12 @@ function ServiceService(Service) {
                             totalPages: 1,
                         }),
                     )
-                    .catch((err) => reject(err));
+                    .catch((err) =>
+                        resolve({
+                            success: false,
+                            message: err.message,
+                        }),
+                    );
                 return;
             }
 
@@ -43,11 +67,12 @@ function ServiceService(Service) {
 
             Promise.all([
                 Service.find({}).skip(skip).limit(sizeNum),
-
                 Service.countDocuments(),
             ])
                 .then(([data, total]) =>
                     resolve({
+                        success: true,
+                        message: "Serviços obtidos com sucesso.",
                         data,
                         total,
                         page: pageNum,
@@ -55,28 +80,118 @@ function ServiceService(Service) {
                         totalPages: Math.ceil(total / sizeNum),
                     }),
                 )
-                .catch((err) => reject(err));
+                .catch((err) =>
+                    resolve({
+                        success: false,
+                        message: err.message,
+                    }),
+                );
         });
     }
     function findById(id) {
         return new Promise(function (resolve, reject) {
+            if (!id) {
+                return reject({
+                    type: "error",
+                    message: "Não foi possível obter o serviço.",
+                });
+            }
+
             Service.findById(id)
-                .then((service) => resolve(service))
-                .catch((err) => reject(err));
+                .then((service) => {
+                    if (!service) {
+                        return reject({
+                            type: "error",
+                            message: "Não foi possível obter o serviço.",
+                        });
+                    }
+
+                    resolve({
+                        data: service,
+                        type: "success",
+                        message: "Serviço obtido com sucesso.",
+                    });
+                })
+                .catch((err) => {
+                    console.error("Erro em findById(Service):", err);
+                    reject({
+                        type: "error",
+                        message: "Não foi possível obter o serviço.",
+                    });
+                });
         });
     }
     function update(id, values) {
         return new Promise(function (resolve, reject) {
-            Service.findByIdAndUpdate(id, values, { new: true })
-                .then((service) => resolve(service))
-                .catch((err) => reject(err));
+            if (!id || !values || typeof values !== "object") {
+                return reject({
+                    type: "error",
+                    message: "Não foi possível atualizar o serviço.",
+                });
+            }
+
+            Service.findById(id)
+                .then((existingService) => {
+                    if (!existingService) {
+                        return reject({
+                            type: "error",
+                            message: "Não foi possível atualizar o serviço.",
+                        });
+                    }
+
+                    return Service.findByIdAndUpdate(id, values, { new: true });
+                })
+                .then((service) => {
+                    if (!service) {
+                        return reject({
+                            type: "error",
+                            message: "Não foi possível atualizar o serviço.",
+                        });
+                    }
+
+                    resolve({
+                        data: service,
+                        type: "success",
+                        message: "Serviço atualizado com sucesso.",
+                    });
+                })
+                .catch((err) => {
+                    reject({
+                        type: "error",
+                        message: "Não foi possível atualizar o serviço.",
+                    });
+                });
         });
     }
     function removeById(id) {
         return new Promise(function (resolve, reject) {
+            if (!id) {
+                return reject({
+                    type: "error",
+                    message: "Não foi possível remover o serviço.",
+                });
+            }
+
             Service.findByIdAndDelete(id)
-                .then(() => resolve("Service removed"))
-                .catch((err) => reject(err));
+                .then((service) => {
+                    if (!service) {
+                        return reject({
+                            type: "error",
+                            message: "Não foi possível remover o serviço.",
+                        });
+                    }
+
+                    resolve({
+                        type: "success",
+                        message: "Serviço removido com sucesso.",
+                    });
+                })
+                .catch((err) => {
+                    reject({
+                        type: "error",
+                        message: "Não foi possível remover o serviço.",
+                    });
+                });
         });
     }
     return service;

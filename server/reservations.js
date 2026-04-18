@@ -30,20 +30,46 @@ function ReservationRouter() {
             },
         )
         .post(
-            Users.authorize([scopes["manage-reservations"]]),
+            Users.authorize([
+                scopes["manage-reservations"],
+                scopes["create-reservations"],
+            ]),
             function (req, res, next) {
                 let body = req.body;
+
+                const isAdmin = req.roleUser.includes(
+                    scopes["manage-reservations"],
+                );
+                const isClient = req.roleUser.includes(
+                    scopes["create-reservations"],
+                );
+
+                if (
+                    isClient &&
+                    !isAdmin &&
+                    body.user.toString() !== req.userId
+                ) {
+                    return res.status(403).json({
+                        type: "error",
+                        message: "Erro ao criar reserva.",
+                    });
+                }
+
                 Reservations.create(body)
-                    .then(() => {
-                        res.status(200);
-                        res.send(body);
-                        next();
+                    .then((reservation) => {
+                        res.status(200).json({
+                            type: "success",
+                            message: "Reserva criada com sucesso.",
+                            data: reservation,
+                        });
                     })
                     .catch((err) => {
-                        console.log("Reservation already exists!");
-                        err.status = err.status || 500;
-                        res.status(401);
-                        next();
+                        console.error(err);
+
+                        res.status(500).json({
+                            type: "error",
+                            message: "Erro ao criar reserva.",
+                        });
                     });
             },
         );
@@ -51,21 +77,33 @@ function ReservationRouter() {
         .route("/:reservationId")
         .get(
             Users.authorize([
-                scopes["read-reservations"],
+                scopes["read-own-reservations"],
                 scopes["manage-reservations"],
             ]),
             function (req, res, next) {
                 let reservationId = req.params.reservationId;
-                Reservations.findById(reservationId).then((reservation) => {
-                    if (
-                        !req.roleUser.includes(scopes["manage-reservations"]) &&
-                        reservation.user.toString() !== req.userId
-                    ) {
-                        return res.status(403).send("Forbidden");
-                    }
 
-                    res.send(reservation);
-                });
+                Reservations.findById(reservationId)
+                    .then((response) => {
+                        const reservation = response.data || response;
+
+                        if (
+                            req.roleUser.includes(
+                                scopes["manage-reservations"],
+                            ) ||
+                            reservation.user.toString() === req.userId
+                        ) {
+                            return res.send(response);
+                        }
+
+                        return res.status(403).send({
+                            type: "error",
+                            message: "Acesso negado.",
+                        });
+                    })
+                    .catch((err) => {
+                        res.status(404).send(err);
+                    });
             },
         )
         .put(

@@ -12,8 +12,8 @@ function authMiddleware(req, res, next) {
 
     Users.verifyToken(token)
         .then((decoded) => {
-            req.roleUser = decoded.role;
-            req.userId = decoded.id;
+            req.roleUser = decoded.data.role;
+            req.userId = decoded.data.id;
             next();
         })
         .catch(() => {

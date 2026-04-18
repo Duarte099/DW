@@ -1,9 +1,9 @@
 module.exports = {
     // CLIENTE
     "read-spaces": "read-spaces",
-    "create-reservations": "create-reservations",
-    "read-own-reservations": "read-own-reservations",
     "read-services": "read-services",
+    "read-own-reservations": "read-own-reservations",
+    "create-reservations": "create-reservations",
 
     // ADMIN
     "manage-spaces": "manage-spaces",

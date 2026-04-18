@@ -7,12 +7,9 @@ function AuthRouter() {
     router.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
     router.route("/register").post(function (req, res, next) {
         const body = req.body;
-        console.log("User:", body);
         Users.create(body)
-            .then(() => Users.createToken(body))
             .then((response) => {
                 res.status(200);
-                console.log("User token:", response);
                 res.send(response);
             })
             .catch((err) => {
@@ -42,8 +39,8 @@ function AuthRouter() {
         let body = req.body;
         console.log("Login for user:", body);
         return Users.findUser(body)
-            .then((user) => {
-                return Users.createToken(user);
+            .then((response) => {
+                return Users.createToken(response.data);
             })
             .then((response) => {
                 res.status(200);
